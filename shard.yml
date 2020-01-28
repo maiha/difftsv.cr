@@ -1,0 +1,25 @@
+name: difftsv
+version: 0.1.0
+
+authors:
+  - maiha <maiha@wota.jp>
+
+targets:
+  difftsv:
+    main: src/bin/difftsv.cr
+
+dependencies:
+  var:
+    github: maiha/var.cr
+  must:
+    github: maiha/must.cr
+  pretty:
+    github: maiha/pretty.cr
+    version: ">= 0.7.7"
+  shard:
+    github: maiha/shard.cr
+  composite_logger:
+    github: maiha/composite_logger.cr
+    version: ">= 0.4.0"
+
+license: MIT
