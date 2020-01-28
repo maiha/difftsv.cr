@@ -74,6 +74,10 @@ class DiffTsv::Diff
   end
   
   def execute : Diff
+    logger.debug "header       : %s" % header
+    logger.debug "primary keys : %s" % primary_keys.inspect
+    logger.debug "value keys   : %s" % value_keys.inspect
+
     # compare keys
     diff_keys
 
@@ -96,10 +100,10 @@ class DiffTsv::Diff
   protected def diff_keys
     diff = keys1 ^ keys2
     if sample = diff.first?
-      msg = "entry: mismatch %d rows (ex. %s) %s" % [diff.size, sample.inspect, mem_s]
+      msg = "entry: mismatch %d rows (ex. %s)" % [diff.size, sample.inspect]
       logger.info msg
     else
-      logger.debug "entry: %d rows %s" % [keys1.size, mem_s]
+      logger.debug "entry: %d rows" % [keys1.size]
     end
   end
 
@@ -179,19 +183,23 @@ class DiffTsv::Diff
 
     size_width = src1.size.to_s.size # 86470 => 5
 
-    rows1.each_with_index do |row, i|
+    rows1.each do |row|
       key = row.key
-      hash1[key]? && raise Halt.new("src1: Found duplicated key %s" % key.inspect)
+      if prev = hash1[key]?
+        halt("src1: Found duplicated key %s (line:%s, line:%s)" % [key.inspect, lineno(prev), lineno(row)])
+      end
       hash1[key] = row
     end
-    logger.debug "hash1: done #{mem_s}"
+    logger.debug "hash1: done"
     
-    rows2.each_with_index do |row, i|
+    rows2.each do |row|
       key = row.key
-      hash2[key]? && raise Halt.new("src2: Found duplicated key %s" % key.inspect)
+      if prev = hash2[key]?
+        halt("src2: Found duplicated key %s (line:%s, line:%s)" % [key.inspect, lineno(prev), lineno(row)])
+      end
       hash2[key] = row
     end
-    logger.debug "hash2: done #{mem_s}"
+    logger.debug "hash2: done"
 
     # left
     hash1.each_with_index do |(key, row), i|
@@ -201,7 +209,7 @@ class DiffTsv::Diff
       end
       show_progress("left : checking...", i+1, hash1.size)
     end
-    logger.debug "left : done #{mem_s}"
+    logger.debug "left : done"
     
     # right
     hash2.each_with_index do |(key, row), i|
@@ -211,19 +219,19 @@ class DiffTsv::Diff
       end
       show_progress("right: checking...", i+1, hash2.size)
     end
-    logger.debug "right: done #{mem_s}"
+    logger.debug "right: done"
 
     # both
     target_keys = (keys1 & keys2)
     target_keys.each_with_index do |key, i|
-      row1 = hash1[key] || raise Halt.new("[BUG] row1[#{key}] not found")
-      row2 = hash2[key] || raise Halt.new("[BUG] row2[#{key}] not found")
+      row1 = hash1[key] || halt("[BUG] row1[#{key}] not found")
+      row2 = hash2[key] || halt("[BUG] row2[#{key}] not found")
       sim  = similarity(row1, row2, delta)
       clue = "line:%#{size_width}d [%s] %s" % [lineno(row1), key, sim]
       both << RowSimilarity.new(key: key, pct: sim.pct_f, clue: clue)
       show_progress("both : checking...", i+1, target_keys.size)
     end
-    logger.debug "both : done #{mem_s}"
+    logger.debug "both : done"
 
     return {left, both, right}
   end    
@@ -274,7 +282,7 @@ class DiffTsv::Diff
     progress.execute do
       w   = max.to_s.size
       pct = n*100//max
-      logger.info "%s %3d%% (%#{w}d/%#{w}d) %s" % [name, pct, n, max, mem_s]
+      logger.info "%s %3d%% (%#{w}d/%#{w}d)" % [name, pct, n, max]
     end
   end
 
@@ -283,11 +291,11 @@ class DiffTsv::Diff
   end
   
   private def lineno(row : Row)
-    row.index + rows_offset
+    (row.index + 1) + rows_offset
   end
 
-  private def mem_s(fmt = "[MEM:%s]")
-    fmt % (Pretty::MemInfo.process.max.to_s rescue "---")
+  private def halt(msg, code = 100)
+    raise Halt.new(msg, code)
   end
 
   def to_s(io : IO)

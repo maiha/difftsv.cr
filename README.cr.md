@@ -12,6 +12,7 @@ difftsv for [Crystal](http://crystal-lang.org/).
 dependencies:
   difftsv:
     github: maiha/difftsv.cr
+    version: 0.1.0
 ```
 
 2. Run `shards install`
@@ -22,11 +23,12 @@ dependencies:
 require "difftsv"
 ```
 
-TODO: Write usage instructions here
-
 ## Development
 
-TODO: Write development instructions here
+```console
+$ make compile  # => "bin/difftsv-dev" (dynamic link)
+$ make release  # => "bin/difftsv" (static link; compiled with release flag)
+```
 
 ## Contributing
 

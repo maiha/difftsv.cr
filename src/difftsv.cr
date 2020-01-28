@@ -9,7 +9,6 @@ require "option_parser"
 require "var"
 require "must"
 require "pretty"
-require "composite_logger"
 
 # app
 require "./difftsv/**"

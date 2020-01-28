@@ -1,4 +1,4 @@
-# difftsv
+# difftsv [![Build Status](https://travis-ci.org/maiha/difftsv.cr.svg?branch=master)](https://travis-ci.org/maiha/difftsv.cr)
 
 Compare TSV files cell by cell with focus on similarity.
 

@@ -29,4 +29,14 @@ class DiffTsv::Header
   def name?(index : Int32) : String?
     names?.try{|a| a[index]?}
   end
+
+  def to_s(io : IO)
+    if names?
+      io << "%s(%d)" % [names.inspect, names.size]
+    elsif n = num_columns?
+      io << "(#{n} columns)"
+    else
+      io << "(no columns)"
+    end
+  end
 end
