@@ -1,6 +1,12 @@
 module Helper
+  abstract def colorize : Bool
+
   protected def colorize(msg : String, color)
-    msg.colorize(color)
+    if colorize
+      msg.colorize(color)
+    else
+      msg
+    end
   end
 
   # colorize methods

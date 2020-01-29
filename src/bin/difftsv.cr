@@ -2,6 +2,7 @@ require "./main"
 
 class Prog < Main
   var logger : Logger = Pretty::Logger.new(STDERR)
+  var colorize = true
 
   def execute
     watch   = Pretty::Stopwatch.new.start
@@ -9,14 +10,11 @@ class Prog < Main
     # command line variables
     header   = false
     fields   = "0"
-    colorize = true
     silent   = false
     quiet    = false
     verbose  = false
     interval = 1
-    limit    = 1_000_000
     delta    = 0.001
-    type     = ""
 
     output_path = nil
     
@@ -25,13 +23,11 @@ class Prog < Main
       parser.banner = "Usage: %s [OPTION]... TSV1 TSV2" % File.basename(PROGRAM_NAME)
 
       parser.on("-H", "--header", "Use first line as header") { header = true }
-      parser.on("-f", "--fields=LIST", "Use theses fields as primary keys") { |v| fields = v }
-      parser.on("-t NAME", "--type=TYPE", "Specifies the type (ex. ad2)") { |v| type = v }
-      parser.on("-l LOG", "--log=LOG", "Specifies the output log file name") { |v| output_path = v }
-      parser.on("-L MAX", "--limit=MAX", "Specifies the number of max input files") { |v| limit = v.to_i }
-      parser.on("-p SEC", "--progress=SEC", "Specify progress interval seconds") { |v| interval = v.to_i }
+      parser.on("-f", "--fields=LIST", "Specify primary keys") { |v| fields = v }
+      parser.on("-l", "--log=LOG", "Specify the output log file name") { |v| output_path = v }
+      parser.on("-p", "--progress=SEC", "Specify progress interval seconds") { |v| interval = v.to_i }
       parser.on("--delta FLOAT", "Threshold for the same float value (default: #{delta})") { |v|  delta = v.to_f }
-      parser.on("--no-color", "Disable colored output") { colorize = false }
+      parser.on("--no-color", "Disable colored output") { self.colorize = false }
       parser.on("-s", "--silent", "Silent mode. No progress, but show similarity value") { silent = true }
       parser.on("-q", "--quiet", "Quiet mode. Print nothing without errors") { quiet = true }
       parser.on("-v", "Verbose") { verbose = true }
@@ -47,24 +43,21 @@ class Prog < Main
     if path = output_path
       self.logger = Logger.new(File.new(path, "w+"))
     end
-#    logger.formatter = "{{mark}},[{{time=%H:%M:%S}}] {{message}}"
-    logger.colorize = true
+    logger.colorize = colorize
     logger.level = (verbose ? "DEBUG" : "INFO")
     if silent || quiet
       logger.level = "FATAL"
       interval = Int32::MAX
     end
     
-    # primary keys
-    keys = ["0"]
-    keys = fields.split(",") if !fields.empty?
-    keys = keys.map(&.to_i) if keys.all?(&.=~ /^\d+$/)
-    keys.any? || raise ArgumentError.new("Specify primary keys by '-t' or '-f'")
-
     # load tsv
     use_basename = ! (File.basename(path1) == File.basename(path2))
     src1 = load_src(path1, basename: use_basename)
     src2 = load_src(path2, basename: use_basename)
+
+    # primary keys (needs fields.size to resolve "-f 5-")
+    keys = normalize_keys(fields, lookup_fields_size?(src1, src2))
+    keys.any? || raise ArgumentError.new("Specify primary keys by '-t' or '-f'")
 
     # assume the first line is header when it starts with '#'
     header ||= src1.first?.try(&.first?.try(&.starts_with?("#")))
@@ -85,6 +78,46 @@ class Prog < Main
     STDOUT.puts buf if !buf.empty?
     logger.info buf if output_path
     exit(diff.result_code)
+  end
+
+  private def lookup_fields_size?(*srcs) : Int32?
+    size = nil
+    srcs.each do |src|
+      size ||= src.try(&.first.try(&.size))
+    end
+    return size
+  end
+
+  private class StringKeyFound < Exception; end
+
+  private def normalize_keys(fields : String, size : Int32?)
+    # "".split(",") # => [""]
+    str_set = Set(String).new( fields.empty? ? %w() : fields.split(",") )
+
+    begin
+      set = Set(Int32).new
+      str_set.each do |key|
+        case key
+        when /^(\d+)$/            # "1"
+          set << $1.to_i
+        when /^(\d+)-$/           # "1-"
+          if size
+            set.concat($1.to_i ... size)
+          else
+            set << $1.to_i
+          end
+        when /^-(\d+)$/           # "-1"
+          set.concat(0 .. $1.to_i)
+        when /^(\d+)-(\d+)$/      # "1-3"
+          set.concat($1.to_i .. $2.to_i)
+        else
+          raise StringKeyFound.new
+        end
+      end
+      return set.to_a
+    rescue StringKeyFound
+      return str_set.to_a
+    end    
   end
 
   private def load_src(path : String, basename = false) : Array(Array(String))

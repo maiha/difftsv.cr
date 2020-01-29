@@ -5,6 +5,8 @@ class Main
   include DiffTsv
   include Helper
   
+  var colorize = true
+
   def self.run(&block)
     new.run(&block)
   end

@@ -4,6 +4,13 @@ Compare TSV files cell by cell with focus on similarity.
 
 ```console
 $ difftsv foo.tsv bar.tsv
+[Similarity distribution] (9 rows)
+  100%: [|||||||||||||||||||||||       ] 7/9 ( 77%)
+   95%: [|||                           ] 1/9 ( 11%)
+   90%: [                              ] 0/9 (  0%)
+   80%: [                              ] 0/9 (  0%)
+   ---: [|||                           ] 1/9 ( 11%)
+Similarity: 88.9% (0.0 sec) MEM:5.2MB
 ```
 
 * [Features](#features)
@@ -37,12 +44,50 @@ $ difftsv foo.tsv bar.tsv
 
 ## Options
 
-### `-s` works in silent mode
+### `-H`, `--header` : Use first line as header
 
-This shows only the value of similarity.
+Treats the first row as the column names.
+
+```tsv
+date	value
+01/29	2
+01/30	5
+```
+
+##### NOTE
+If the first line starts with `#`, it is automatically recognized as a header, regardless of this option.
+```tsv
+#date	value
+...
+```
+
+### `-f`, `--fields=KEYS` : primary keys
+
+This specifies primary keys by zero-origin indexes.
+Accepts the same format as **cut(1)**. Default is 0.
 
 ```console
-$ difftsv foo.tsv bar.tsv -s
+$ difftsv -f 0-2,5 ...
+```
+
+### `--delta FLOAT` : Threshold for the same float value
+Compares float values with this delta. Default is `0.001`.
+
+```console
+$ difftsv ...
+Similarity: 99.993 (0.0 sec) MEM:5.1MB
+
+$ difftsv --delta 0.1 ...
+Similarity: 100 (0.0 sec) MEM:5.2MB
+```
+
+### `-s` works in silent mode
+
+This outputs only float values of similarity to **STDOUT**.
+If an error occurs, the content of the error is output to **STDERR**, and nothing is output to **STDOUT**.
+
+```console
+$ difftsv -s ...
 100.0
 ```
 
@@ -51,14 +96,14 @@ $ difftsv foo.tsv bar.tsv -s
 This shows nothing except error messages. It is useful when you want just status code.
 
 ```console
-$ difftsv foo.tsv bar.tsv -q
+$ difftsv -q ...
 ```
 
 ## TODO
 
-- specify the value fields to be compared
-- handle duplicated keys
-- write different rows and cols into file
+- cli: Specify the value keys
+- lib: handle duplicated keys (skip or raise)
+- lib: write different rows and cols into file
 
 ## Library
 

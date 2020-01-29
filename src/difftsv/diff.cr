@@ -44,18 +44,14 @@ class DiffTsv::Diff
     @value_keys = (0...self.header.num_columns).to_a - primary_keys
   end
 
-  private def build_primary_keys(keys : Array(Int32) | Array(String)) : Array(Int32)
-    case keys
-    when Array(Int32)
-      return keys
-    when Array(String)
-      names = header.names
-      return keys.map{|key|
-        names.index(key) || raise ArgumentError.new("Primary key(#{key}) is not found in header(#{names.inspect})")
-      }
-    else
-      raise "BUG: build_primary_keys got unknown type: #{keys.class}"
-    end
+  private def build_primary_keys(keys : Array(Int32)) : Array(Int32)
+    return keys
+  end
+
+  private def build_primary_keys(keys : Array(String)) : Array(Int32)
+    return keys.map{|key|
+      header.names.index(key) || raise ArgumentError.new("Primary key(str:#{key.inspect}) is not found in header(#{header.names.inspect})")
+    }
   end
 
   private def build_header(given_header : Bool | Array(String) | Nil ) : Header
@@ -170,7 +166,8 @@ class DiffTsv::Diff
 
     # 3. Calculate average value of similarity
     self.similarity_pct = (all.map(&.pct).sum / all.size rescue 0.0)
-    result_buffer.puts "Similarity: %.1f%%" % similarity_pct
+    pct_s = (similarity_pct == 100) ? "100" : "%.3f" % similarity_pct
+    result_buffer.puts "Similarity: %s" % pct_s
   end
 
   private def build_left_both_right
