@@ -1,3 +1,4 @@
+require "shard"
 require "../difftsv"
 require "./helper"
 

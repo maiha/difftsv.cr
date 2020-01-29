@@ -15,6 +15,7 @@ class Prog < Main
     verbose  = false
     interval = 1
     delta    = 0.001
+    version  = false
 
     output_path = nil
     
@@ -30,10 +31,17 @@ class Prog < Main
       parser.on("--no-color", "Disable colored output") { self.colorize = false }
       parser.on("-s", "--silent", "Silent mode. No progress, but show similarity value") { silent = true }
       parser.on("-q", "--quiet", "Quiet mode. Print nothing without errors") { quiet = true }
-      parser.on("-v", "Verbose") { verbose = true }
+      parser.on("-v", "--verbose", "Verbose mode") { verbose = true }
+      parser.on("-V", "--version", "Show version") { version = true }
       parser.on("-h", "--help", "Show this help") { puts parser; exit(0) }
     end
     parser.parse
+
+    # "--version"
+    if version
+      STDOUT.puts "%s %s" % [File.basename(PROGRAM_NAME), Shard.git_description.split(/\s+/, 2).last]
+      exit(0)
+    end
     
     # input files
     path1 = ARGV.shift? || raise ArgumentError.new("Requires two files. But TSV1 is missing")
