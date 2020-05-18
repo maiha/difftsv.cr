@@ -99,6 +99,21 @@ This shows nothing except error messages. It is useful when you want just status
 $ difftsv -q ...
 ```
 
+### `-L`, `--loader` : loading strategy
+
+By default, the CSV parser is used, so handling data files with strings containing double quotes,
+for example, may result in an error.
+
+```text
+Expecting comma, newline or end, not '-' at 27029:97
+```
+
+In that case, use the "donkey mode", which may be slow but is a simple process of analysis.
+
+```console
+$ difftsv -L donkey ...
+```
+
 ## TODO
 
 - cli: Specify the value keys

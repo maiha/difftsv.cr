@@ -10,6 +10,7 @@ class Prog < Main
     # command line variables
     header   = false
     fields   = "0"
+    strategy = DiffTsv::Loader::Strategy::CSV
     silent   = false
     quiet    = false
     verbose  = false
@@ -25,6 +26,7 @@ class Prog < Main
 
       parser.on("-H", "--header", "Use first line as header") { header = true }
       parser.on("-f", "--fields=LIST", "Specify primary keys") { |v| fields = v }
+      parser.on("-L", "--loader=LOADER", "'csv' or 'donkey'") { |v| strategy = DiffTsv::Loader::Strategy.parse?(v) || abort "loader must be one of %s" % DiffTsv::Loader::Strategy.values.inspect }
       parser.on("-l", "--log=LOG", "Specify the output log file name") { |v| output_path = v }
       parser.on("-p", "--progress=SEC", "Specify progress interval seconds") { |v| interval = v.to_i }
       parser.on("--delta FLOAT", "Threshold for the same float value (default: #{delta})") { |v|  delta = v.to_f }
@@ -60,8 +62,8 @@ class Prog < Main
     
     # load tsv
     use_basename = ! (File.basename(path1) == File.basename(path2))
-    src1 = load_src(path1, basename: use_basename)
-    src2 = load_src(path2, basename: use_basename)
+    src1 = load_src(path1, basename: use_basename, strategy: strategy)
+    src2 = load_src(path2, basename: use_basename, strategy: strategy)
 
     # primary keys (needs fields.size to resolve "-f 5-")
     keys = normalize_keys(fields, lookup_fields_size?(src1, src2))
@@ -128,9 +130,9 @@ class Prog < Main
     end    
   end
 
-  private def load_src(path : String, basename = false) : Array(Array(String))
+  private def load_src(path : String, strategy, basename = false) : Array(Array(String))
     watch = Pretty::Stopwatch.new
-    rows  = watch.measure{ CSV.parse(File.read(path), separator: '\t') }
+    rows  = watch.measure{ DiffTsv::Loader.new(path, strategy).load }
     bytes = Pretty.bytes(File.size(path), prefix: "")
     file  = basename ? File.basename(path) : path
     # Loaded 500580 rows (35.9MB) in 1.0 sec # out

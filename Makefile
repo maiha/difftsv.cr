@@ -4,7 +4,7 @@ export LC_ALL=C
 export UID = $(shell id -u)
 export GID = $(shell id -g)
 
-DOCKER_RUN=docker run -t -u $(UID):$(GID) -v $(PWD):/v -w /v --rm crystallang/crystal:0.32.1
+DOCKER_RUN=docker run -t -u $(UID):$(GID) -v $(PWD):/v -w /v --rm crystallang/crystal:0.33.0
 
 VERSION=
 CURRENT_VERSION=$(shell git tag -l | sort -V | tail -1)
