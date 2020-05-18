@@ -63,11 +63,11 @@ If the first line starts with `#`, it is automatically recognized as a header, r
 
 ### `-f`, `--fields=KEYS` : primary keys
 
-This specifies primary keys by zero-origin indexes.
-Accepts the same format as **cut(1)**. Default is 0.
+This specifies primary keys by 1-origin indexes.
+Accepts the same format as **cut(1)**. Default is 1.
 
 ```console
-$ difftsv -f 0-2,5 ...
+$ difftsv -f 1-3,5 ...
 ```
 
 ### `--delta FLOAT` : Threshold for the same float value

@@ -25,7 +25,7 @@ class Prog < Main
       parser.banner = "Usage: %s [OPTION]... TSV1 TSV2" % File.basename(PROGRAM_NAME)
 
       parser.on("-H", "--header", "Use first line as header") { header = true }
-      parser.on("-f", "--fields=LIST", "Specify primary keys") { |v| fields = v }
+      parser.on("-f", "--fields=LIST", "Specify primary keys (1 origin)") { |v| fields = v }
       parser.on("-L", "--loader=LOADER", "'csv' or 'donkey'") { |v| strategy = DiffTsv::Loader::Strategy.parse?(v) || abort "loader must be one of %s" % DiffTsv::Loader::Strategy.values.inspect }
       parser.on("-l", "--log=LOG", "Specify the output log file name") { |v| output_path = v }
       parser.on("-p", "--progress=SEC", "Specify progress interval seconds") { |v| interval = v.to_i }
@@ -100,6 +100,17 @@ class Prog < Main
 
   private class StringKeyFound < Exception; end
 
+  # user inputs   : 1 origins
+  # internal vals : 0 origins
+  private def normalize_key(user_input : String) : Int32
+    v = user_input.to_i? || abort "[BUG] normalize key error: #{user_input}"
+    if v > 0
+      return v - 1
+    else
+      abort "field index must be > 0, but got #{v}"
+    end
+  end
+
   private def normalize_keys(fields : String, size : Int32?)
     # "".split(",") # => [""]
     str_set = Set(String).new( fields.empty? ? %w() : fields.split(",") )
@@ -109,17 +120,17 @@ class Prog < Main
       str_set.each do |key|
         case key
         when /^(\d+)$/            # "1"
-          set << $1.to_i
+          set << normalize_key($1)
         when /^(\d+)-$/           # "1-"
           if size
-            set.concat($1.to_i ... size)
+            set.concat(normalize_key($1) ... size)
           else
-            set << $1.to_i
+            set << normalize_key($1)
           end
         when /^-(\d+)$/           # "-1"
-          set.concat(0 .. $1.to_i)
+          set.concat(0 .. normalize_key($1))
         when /^(\d+)-(\d+)$/      # "1-3"
-          set.concat($1.to_i .. $2.to_i)
+          set.concat(normalize_key($1) .. normalize_key($2))
         else
           raise StringKeyFound.new
         end
